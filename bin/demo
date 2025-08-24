@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+require "acme"
+require "acme/pricing/delivery_rules"
+require "acme/pricing/offers/buy_one_get_second_half"
+
+include Acme
+
+products = [
+  Domain::Product.new(code: "R01", name: "Red Widget",   price: "32.95"),
+  Domain::Product.new(code: "G01", name: "Green Widget", price: "24.95"),
+  Domain::Product.new(code: "B01", name: "Blue Widget",  price: "7.95")
+]
+catalogue = Domain::Catalogue.new(products)
+
+delivery_rules = Pricing::DeliveryRules.new([
+  Pricing::DeliveryRules::Tier.new(predicate: ->(s) { s <  50.to_d }, cost: "4.95"),
+  Pricing::DeliveryRules::Tier.new(predicate: ->(s) { s <  90.to_d }, cost: "2.95"),
+  Pricing::DeliveryRules::Tier.new(predicate: ->(s) { s >= 90.to_d }, cost: "0.00")
+])
+
+offers = [Pricing::Offers::BuyOneGetSecondHalf.new(product_code: "R01")]
+
+basket = Basket.new(catalogue: catalogue, delivery_rules: delivery_rules, offers: offers)
+
+puts "Welcome to Acme Basket!"
+puts "Available products:"
+products.each do |p|
+  puts "  #{p.code} - #{p.name} ($#{p.price})"
+end
+puts "Type product codes to add items to your basket."
+puts "Type 'done' when finished."
+
+loop do
+  print "> "
+  input = gets&.strip
+  break if input.nil? || input.downcase == "done"
+
+  begin
+    basket.add(input)
+    puts "#{input.upcase} added."
+  rescue Support::UnknownProductCode
+    puts "Unknown product code: #{input}"
+  end
+end
+
+puts "-------------------"
+puts "Basket items: #{basket.items.join(", ")}"
+puts "Total: #{basket.total}"
