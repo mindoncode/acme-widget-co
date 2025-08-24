@@ -13,6 +13,8 @@ module Acme
 
       def cost_for(subtotal)
         sub = Support::Money.round(subtotal)
+        return 0.to_d if sub <= 0
+
         tier = @tiers.find { |t| t.predicate.call(sub) }
         tier ? Support::Money.round(tier.cost) : 0.to_d
       end
